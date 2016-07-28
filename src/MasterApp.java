@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.ServerSocket;
@@ -24,18 +25,24 @@ public class MasterApp {
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
-                        synchronized (portas_dos_clientes) {
+                        synchronized (portas_dos_clientes) {//TODO caso não consiga conectar aquela porta retirar da lista.
                             for (Integer p : portas_dos_clientes) {
                                 try{
                                     Socket client = new Socket("127.0.0.1", p);
                                     System.out.println("Sending Update to " + p);
-                                    PrintStream saida = new PrintStream(client.getOutputStream());
-                                    saida.println("Update Server " + p);
+                                    //PrintStream saida = new PrintStream(client.getOutputStream());
+                                    //saida.println("Update Server " + p);
+                                    ObjectOutputStream bufferStream = new ObjectOutputStream(client.getOutputStream());
+                                    bufferStream.flush();
+                                    synchronized (portas_dos_clientes) {
+                                        bufferStream.writeObject(portas_dos_clientes);
+                                    }
+                                    bufferStream.close();
                                 }catch (UnknownHostException e) {
                                      e.printStackTrace();
                                 } catch (IOException e) {
                                      e.printStackTrace();
-                            }
+                                }
                             }
                         }
                     }

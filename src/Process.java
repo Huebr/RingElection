@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -48,20 +49,26 @@ public class Process implements Runnable{
         }
         return port;
     }
-    public void updateListener(int port){
+    public void updateListener(ArrayList<Integer> vizinhos,int port){
         try {
             ServerSocket serverListener = new ServerSocket(port);
             while(true){
                 try {
                     Socket client = serverListener.accept();
-                    Scanner sc = new Scanner(client.getInputStream());
                     while (!client.isClosed()) {
-                        if (sc.hasNextLine()) {
-                            System.out.println(sc.nextLine());
-                            client.close();
+                        ObjectInputStream bufferInput = new ObjectInputStream(client.getInputStream());
+                        vizinhos = (ArrayList<Integer>) bufferInput.readObject();
+                        client.close();
+                    }
+                    System.out.println("Tabela de Vizinhos de "+port+" : \n");
+                    for(Integer viz:vizinhos){
+                        if(viz!=port){
+                            System.out.println("Conhece Vizinho "+viz);
                         }
                     }
                 }catch (IOException e){
+                    e.printStackTrace();
+                } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
             }
@@ -72,10 +79,10 @@ public class Process implements Runnable{
     @Override
     public void run() {
         this.x=0;
+        vizinhos = new ArrayList<>();
         try {
             int port = register();
-            new Thread(()-> updateListener(port)).start();
-
+            new Thread(()-> updateListener(vizinhos,port)).start();
 
         } catch (IOException e) {
             e.printStackTrace();
