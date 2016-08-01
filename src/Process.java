@@ -78,7 +78,6 @@ public class Process implements Runnable{
     }
     @Override
     public void run() {
-        this.x=0;
         vizinhos = new ArrayList<>();
         try {
             int port = register();
