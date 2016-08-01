@@ -6,6 +6,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by pedro-jorge on 27/07/2016.
@@ -14,7 +16,7 @@ public class MasterApp {
     public static void main(String args[]){
         int actual_id;
         actual_id = 1;
-        ArrayList<Integer> portas_dos_clientes = new ArrayList<>();
+        Map<Integer,Integer> portas_dos_clientes = new HashMap<Integer,Integer>();
         try {
             ServerSocket server = new ServerSocket(6345);
             new Thread(() -> {
@@ -26,16 +28,17 @@ public class MasterApp {
                             e.printStackTrace();
                         }
                         synchronized (portas_dos_clientes) {//TODO caso não consiga conectar aquela porta retirar da lista.
-                            for (Integer p : portas_dos_clientes) {
+                            for ( Integer id : portas_dos_clientes.keySet()) {
                                 try{
-                                    Socket client = new Socket("127.0.0.1", p);
-                                    System.out.println("Sending Update to " + p);
+                                    Socket client = new Socket("127.0.0.1", portas_dos_clientes.get(id));
+                                    System.out.println("Sending Update to " + id);
                                     //PrintStream saida = new PrintStream(client.getOutputStream());
                                     //saida.println("Update Server " + p);
                                     ObjectOutputStream bufferStream = new ObjectOutputStream(client.getOutputStream());
                                     bufferStream.flush();
                                     synchronized (portas_dos_clientes) {
-                                        bufferStream.writeObject(portas_dos_clientes);
+                                        Message msg = new Message(0,portas_dos_clientes);
+                                        bufferStream.writeObject(msg);
                                     }
                                     bufferStream.close();
                                 }catch (UnknownHostException e) {
@@ -49,12 +52,12 @@ public class MasterApp {
 
             }
             ).start();
-            while(!server.isClosed()){
+            while(!server.isClosed()){//registra
                 Socket client = server.accept();
                 System.out.println("Nova conexão com o cliente " +
                         client.getPort()
                 );
-                portas_dos_clientes.add(client.getPort());
+                portas_dos_clientes.put(actual_id,client.getPort());
                PrintStream saida = new PrintStream(client.getOutputStream());
                 saida.println(actual_id++);
                 saida.println(client.getPort());

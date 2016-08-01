@@ -4,6 +4,8 @@ import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
 /**
@@ -12,8 +14,10 @@ import java.util.Scanner;
 public class Process implements Runnable{
     private int pid;
     private int priority;
+    private int port;
+    private int coodenador;
     private int x;
-    ArrayList<Integer> vizinhos;
+    Map<Integer,Integer> vizinhos;
 
     /*Process(int pid,int priority){
         setPid(pid);
@@ -36,39 +40,54 @@ public class Process implements Runnable{
     public int getPriority() {
         return priority;
     }
-    public int register() throws IOException {
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    private void register() throws IOException {
         Socket client = new Socket("127.0.0.1",6345); //Connection MasterApp
         Scanner s = new Scanner(client.getInputStream());
-        int port = 0;
         while(!client.isClosed()){
             if(s.hasNextInt()) {
                 setPid(s.nextInt());
-                port = s.nextInt();
+                setPort(s.nextInt());
                 client.close();
             }
         }
-        return port;
+
     }
-    public void updateListener(ArrayList<Integer> vizinhos,int port){
+    private void updateListener(){
         try {
             ServerSocket serverListener = new ServerSocket(port);
             while(true){
                 try {
+                    Message msg=null;
                     Socket client = serverListener.accept();
                     while (!client.isClosed()) {
                         ObjectInputStream bufferInput = new ObjectInputStream(client.getInputStream());
-                        vizinhos = (ArrayList<Integer>) bufferInput.readObject();
+                        msg = (Message) bufferInput.readObject();
                         client.close();
                     }
-                    System.out.println("Tabela de Vizinhos de "+port+" : \n");
-                    for(Integer viz:vizinhos){
-                        if(viz!=port){
-                            System.out.println("Conhece Vizinho "+viz);
+                    if (msg != null) {
+                        switch(msg.getType()){
+                            case 0: System.out.println("Tabela de Vizinhos de "+getPort()+" : \n");
+                                    vizinhos = (Map<Integer,Integer>) msg.getContent();
+                                    for(Integer viz:vizinhos.keySet()){
+                                       if(viz!=getPort()){
+                                            System.out.println("Conhece Vizinho "+viz+" Porta "+vizinhos.get(viz));
+                                        }
+                                     }
+                                     break;
+                            default: System.out.println("Messagem Invalida");
+                                     break;
                         }
                     }
-                }catch (IOException e){
-                    e.printStackTrace();
-                } catch (ClassNotFoundException e) {
+                }catch (IOException | ClassNotFoundException e){
                     e.printStackTrace();
                 }
             }
@@ -76,17 +95,33 @@ public class Process implements Runnable{
             e.printStackTrace();
         }
     }
+    public void election() {
+        try {
+            Thread.sleep(20000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
     @Override
     public void run() {
-        vizinhos = new ArrayList<>();
+        setCoodenador(1);//First process Coordenador
+        vizinhos = new HashMap<Integer,Integer>();
         try {
-            int port = register();
-            new Thread(()-> updateListener(vizinhos,port)).start();
-
+            register();
+            new Thread(this::updateListener).start();
+            new Thread(this::election).start();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         System.out.println("Started Process with id : "+getPid()+" and priority "+getPriority());
+    }
+
+    public int getCoodenador() {
+        return coodenador;
+    }
+
+    public void setCoodenador(int coodenador) {
+        this.coodenador = coodenador;
     }
 }

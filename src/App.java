@@ -1,7 +1,7 @@
 /**
  * Created by pedro-jorge on 27/07/2016.
  */
-public class App {
+public class App {//launcher dos processos.
     public static void main(String args[]){
         int number_of_process;
         number_of_process =5;
