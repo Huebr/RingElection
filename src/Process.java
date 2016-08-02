@@ -1,14 +1,10 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintStream;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
+import java.lang.reflect.Array;
+import java.net.*;
+import java.util.*;
 
 /**
  * Created by pedro-jorge on 27/07/2016.
@@ -19,6 +15,7 @@ public class Process implements Runnable{
     private int port;
     private int coodenador;
     private int x;
+    ArrayList<Integer> activeList;
     Map<Integer,Integer> vizinhos;
 
     /*Process(int pid,int priority){
@@ -63,7 +60,7 @@ public class Process implements Runnable{
         }
 
     }
-    private synchronized void  updateListener() {
+    private  void  updateListener() {
         try {
             ServerSocket serverListener = new ServerSocket(port);
             while(true){
@@ -86,11 +83,58 @@ public class Process implements Runnable{
                                      }*/
                                      break;
                             case 1:
+                                    ArrayList<Integer> active= (ArrayList<Integer>)msg.getContent();
+
+                                    try {
+                                        int next=get_nextnode();
+                                        if(active.contains(getPid())){
+                                            Socket nclient = new Socket("127.0.0.1", next);
+                                            ObjectOutputStream bufferStream = new ObjectOutputStream(nclient.getOutputStream());
+                                            bufferStream.flush();
+                                            Message nmsg = new Message(2,Collections.max(activeList));
+                                            bufferStream.writeObject(nmsg);
+                                            bufferStream.close();
+                                            nclient.close();
+                                        }
+                                        else{
+                                            active.add(getPid());
+                                            activeList.addAll(active);
+                                            Socket nclient = new Socket("127.0.0.1", next);
+                                            ObjectOutputStream bufferStream = new ObjectOutputStream(nclient.getOutputStream());
+                                            bufferStream.flush();
+                                            Message nmsg = new Message(1,activeList);
+                                            bufferStream.writeObject(nmsg);
+                                            bufferStream.close();
+                                            nclient.close();
+                                        }
+                                     } catch (IOException e) {
+                                        e.printStackTrace();
+                                     }
+
                                     break;
                             case 2:
+                                    Integer ncoordenator = (Integer)msg.getContent();
+                                    if(!(getCoodenador() == ncoordenator)){
+                                        setCoodenador(ncoordenator);
+                                        int next= 0;
+                                        try {
+                                            next = get_nextnode();
+                                            Socket nclient = new Socket("127.0.0.1", next);
+                                            ObjectOutputStream bufferStream = new ObjectOutputStream(nclient.getOutputStream());
+                                            bufferStream.flush();
+                                            Message nmsg = new Message(2,getCoodenador());
+                                            bufferStream.writeObject(nmsg);
+                                            bufferStream.close();
+                                            nclient.close();
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
                                     break;
-                            case 3:
-                                    break;
+                            case 3:break;
+                            case 4:
+                                System.out.println(msg.getContent());
+                                break;
                             default: System.out.println("Messagem Invalida");
                                      break;
                         }
@@ -103,25 +147,76 @@ public class Process implements Runnable{
             e.printStackTrace();
         }
     }
-    public synchronized void election() {
+    private int try_connect(int p) {
+        try {
+            Socket client = new Socket();
+            int time = 1000;
+            client.connect(new InetSocketAddress("127.0.0.1", vizinhos.get(p)), time);
+            //System.out.println("\nConectado com sucesso com vizinho");
+            ObjectOutputStream bufferStream = new ObjectOutputStream(client.getOutputStream());
+            bufferStream.flush();
+            Message msg = new Message(4, "hello");
+            bufferStream.writeObject(msg);
+            return 0;
+        }catch (IOException e){
+            return -1;
+        }
+    }
+    private int get_nextnode() {
+        int flag=0;
+        for(Integer p:vizinhos.keySet()){
+            if(flag==1){
+                if(try_connect(p)!=-1)return p;
+            }
+            if(p==getPid()){
+                flag=1;
+            }
+        }
+        for(Integer p:vizinhos.keySet()){
+            if(p==getPid()){
+                break;
+            }
+            if(try_connect(p)!=-1)return p;
+        }
+        return -1;
+    }
+    public void election() {
         try {
             while(true) {
                 if (vizinhos.isEmpty()) {
+                    Thread.sleep(5000);
                 }
-                else{
+                else if(getPid()!=getCoodenador()){
                     try {
                         Socket client = new Socket();
                         int time = 1000;
+                        if(vizinhos.get(getCoodenador())==null)throw new IOException();
                         client.connect(new InetSocketAddress("127.0.0.1",vizinhos.get(getCoodenador())),time);
                         System.out.println("\nConectado com sucesso com coordenador");
-                        client.close();
+                        ObjectOutputStream bufferStream = new ObjectOutputStream(client.getOutputStream());
+                        bufferStream.flush();
+                        Message msg = new Message(4,"hello");
+                        bufferStream.writeObject(msg);
                         Thread.sleep(10000);
 
-                    }catch (SocketTimeoutException e){
+                    } catch (IOException e) {
                         System.out.println(getPid()+" cannot connect "+ getCoodenador() );
-                    }
-                    catch (IOException e) {
-                        e.printStackTrace();
+                        try{
+                            int next_node = get_nextnode();
+                            Socket client = new Socket("127.0.0.1", vizinhos.get(next_node));
+                            //System.out.println("Sending Update to " + id);
+                            ObjectOutputStream bufferStream = new ObjectOutputStream(client.getOutputStream());
+                            bufferStream.flush();
+                            activeList = new ArrayList<>();
+                            activeList.add(getPid());
+                            Message msg = new Message(1,activeList);
+                            bufferStream.writeObject(msg);
+                            bufferStream.close();
+                            client.close();
+                        } catch (IOException f) {
+                            f.printStackTrace();
+                        }
+                        Thread.sleep(1000);
                     }
 
                 }

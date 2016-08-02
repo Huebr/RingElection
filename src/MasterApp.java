@@ -28,6 +28,8 @@ public class MasterApp {
                             e.printStackTrace();
                         }
                         synchronized (portas_dos_clientes) {//TODO caso não consiga conectar aquela porta retirar da lista.
+                            int flag=0;
+                            ArrayList<Integer> rm = new ArrayList<>();
                             for ( Integer id : portas_dos_clientes.keySet()) {
                                 try{
                                     Socket client = new Socket("127.0.0.1", portas_dos_clientes.get(id));
@@ -36,16 +38,18 @@ public class MasterApp {
                                     //saida.println("Update Server " + p);
                                     ObjectOutputStream bufferStream = new ObjectOutputStream(client.getOutputStream());
                                     bufferStream.flush();
-                                    synchronized (portas_dos_clientes) {
-                                        Message msg = new Message(0,portas_dos_clientes);
-                                        bufferStream.writeObject(msg);
-                                    }
+                                    Message msg = new Message(0,portas_dos_clientes);
+                                    bufferStream.writeObject(msg);
                                     bufferStream.close();
                                 }catch (UnknownHostException e) {
                                      e.printStackTrace();
                                 }catch (IOException e) {
-                                     e.printStackTrace();
+                                     flag =1;
+                                    rm.add(id);
                                 }
+                            }
+                            for(Integer id:rm) {
+                                portas_dos_clientes.remove(id);
                             }
                         }
                     }
@@ -65,6 +69,5 @@ public class MasterApp {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 }
