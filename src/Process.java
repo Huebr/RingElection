@@ -1,8 +1,10 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.PrintStream;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -61,28 +63,34 @@ public class Process implements Runnable{
         }
 
     }
-    private void updateListener(){
+    private synchronized void  updateListener() {
         try {
             ServerSocket serverListener = new ServerSocket(port);
             while(true){
                 try {
                     Message msg=null;
                     Socket client = serverListener.accept();
-                    while (!client.isClosed()) {
+                    while (!client.isClosed()) {//tem que ajeitar
                         ObjectInputStream bufferInput = new ObjectInputStream(client.getInputStream());
                         msg = (Message) bufferInput.readObject();
                         client.close();
                     }
                     if (msg != null) {
                         switch(msg.getType()){
-                            case 0: System.out.println("Tabela de Vizinhos de "+getPort()+" : \n");
+                            case 0: //System.out.println("Tabela de Vizinhos de "+getPort()+" : \n");
                                     vizinhos = (Map<Integer,Integer>) msg.getContent();
-                                    for(Integer viz:vizinhos.keySet()){
+                                    /*for(Integer viz:vizinhos.keySet()){
                                        if(viz!=getPort()){
                                             System.out.println("Conhece Vizinho "+viz+" Porta "+vizinhos.get(viz));
                                         }
-                                     }
+                                     }*/
                                      break;
+                            case 1:
+                                    break;
+                            case 2:
+                                    break;
+                            case 3:
+                                    break;
                             default: System.out.println("Messagem Invalida");
                                      break;
                         }
@@ -95,9 +103,29 @@ public class Process implements Runnable{
             e.printStackTrace();
         }
     }
-    public void election() {
+    public synchronized void election() {
         try {
-            Thread.sleep(20000);
+            while(true) {
+                if (vizinhos.isEmpty()) {
+                }
+                else{
+                    try {
+                        Socket client = new Socket();
+                        int time = 1000;
+                        client.connect(new InetSocketAddress("127.0.0.1",vizinhos.get(getCoodenador())),time);
+                        System.out.println("\nConectado com sucesso com coordenador");
+                        client.close();
+                        Thread.sleep(10000);
+
+                    }catch (SocketTimeoutException e){
+                        System.out.println(getPid()+" cannot connect "+ getCoodenador() );
+                    }
+                    catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -115,6 +143,11 @@ public class Process implements Runnable{
         }
 
         System.out.println("Started Process with id : "+getPid()+" and priority "+getPriority());
+        /*Scanner sc = new Scanner(System.in);
+        String cmd;
+        cmd = sc.nextLine();
+        while(!cmd.equals("exit")){//forma de desligar maybe
+        }*/
     }
 
     public int getCoodenador() {
