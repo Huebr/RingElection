@@ -56,7 +56,7 @@ public class MasterApp {
 
             }
             ).start();
-            while(!server.isClosed()){//registra
+            while(!server.isClosed()){//registraas
                 Socket client = server.accept();
                 System.out.println("Nova conexão com o cliente " +
                         client.getPort()
