@@ -14,7 +14,6 @@ public class Process implements Runnable{
     private int priority;
     private int port;
     private int coodenador;
-    private int x;
     private int rc_flag;
     ArrayList<Integer> activeList;
     Map<Integer,Integer> vizinhos;
@@ -89,9 +88,11 @@ public class Process implements Runnable{
                                         try {
                                             int next = get_nextnode();
                                             if (active.contains(getPid())) {
+                                                activeList= new ArrayList<>(active);
                                                 Socket nclient = new Socket("127.0.0.1", vizinhos.get(next));
                                                 ObjectOutputStream bufferStream = new ObjectOutputStream(nclient.getOutputStream());
                                                 bufferStream.flush();
+                                                //System.out.println( activeList +" "+Collections.max(activeList));
                                                 Message nmsg = new Message(2, Collections.max(activeList));
                                                 bufferStream.writeObject(nmsg);
                                                 bufferStream.close();
@@ -99,7 +100,6 @@ public class Process implements Runnable{
                                             } else {
                                                 active.add(getPid());
                                                 activeList= new ArrayList<>(active);
-                                                System.out.println(activeList);
                                                 Socket nclient = new Socket("127.0.0.1", vizinhos.get(next));
                                                 ObjectOutputStream bufferStream = new ObjectOutputStream(nclient.getOutputStream());
                                                 bufferStream.flush();
@@ -117,7 +117,7 @@ public class Process implements Runnable{
                                     Integer ncoordenator = (Integer)msg.getContent();
                                     if(getCoodenador() != ncoordenator){
                                         setCoodenador(ncoordenator);
-                                        System.out.println(getPid()+" "+getCoodenador());
+                                        System.out.println(getPid()+" configurou novo coordenador : "+getCoodenador());
                                         int next= 0;
                                         try {
                                             next = get_nextnode();
@@ -195,7 +195,7 @@ public class Process implements Runnable{
                         int time = 1000;
                         if(vizinhos.get(getCoodenador())==null)throw new IOException();
                         client.connect(new InetSocketAddress("127.0.0.1",vizinhos.get(getCoodenador())),time);
-                        System.out.println("\nConectado com sucesso com coordenador");
+                        System.out.println(getPid() + " Conectado com sucesso com coordenador " + getCoodenador());
                         ObjectOutputStream bufferStream = new ObjectOutputStream(client.getOutputStream());
                         bufferStream.flush();
                         Message msg = new Message(4,"hello");
@@ -203,7 +203,7 @@ public class Process implements Runnable{
                         Thread.sleep(10000);
 
                     } catch (IOException e) {
-                        System.out.println(getPid()+" cannot connect "+ getCoodenador() );
+                        System.out.println(getPid()+" não consegue conectar com "+ getCoodenador() );
                         try{
                             if(rc_flag==0) {
                                 rc_flag=1;
