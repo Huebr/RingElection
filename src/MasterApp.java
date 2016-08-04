@@ -18,7 +18,7 @@ public class MasterApp {
         actual_id = 1;
         Map<Integer,Integer> portas_dos_clientes = new HashMap<Integer,Integer>();
         try {
-            ServerSocket server = new ServerSocket(6345);
+            ServerSocket server = new ServerSocket(6346);
             new Thread(() -> {
                     while (true) {
 
@@ -61,7 +61,9 @@ public class MasterApp {
                 System.out.println("Nova conexão com o cliente " +
                         client.getPort()
                 );
-                portas_dos_clientes.put(actual_id,client.getPort());
+                synchronized (portas_dos_clientes) {
+                    portas_dos_clientes.put(actual_id, client.getPort());
+                }
                PrintStream saida = new PrintStream(client.getOutputStream());
                 saida.println(actual_id++);
                 saida.println(client.getPort());
