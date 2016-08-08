@@ -16,7 +16,7 @@ public class Process implements Runnable{
     private int coodenador;
     private int rc_flag;
     ArrayList<Integer> activeList;
-    Map<Integer,Integer> vizinhos;
+    Map<Integer,IP> vizinhos;
 
     /*Process(int pid,int priority){
         setPid(pid);
@@ -75,7 +75,7 @@ public class Process implements Runnable{
                     if (msg != null) {
                         switch(msg.getType()){
                             case 0: //System.out.println("Tabela de Vizinhos de "+getPort()+" : \n");
-                                    vizinhos = (Map<Integer,Integer>) msg.getContent();
+                                    vizinhos = (Map<Integer,IP>) msg.getContent();
                                     /*for(Integer viz:vizinhos.keySet()){
                                        if(viz!=getPort()){
                                             System.out.println("Conhece Vizinho "+viz+" Porta "+vizinhos.get(viz));
@@ -89,7 +89,7 @@ public class Process implements Runnable{
                                             int next = get_nextnode();
                                             if (active.contains(getPid())) {
                                                 activeList= new ArrayList<>(active);
-                                                Socket nclient = new Socket("127.0.0.1", vizinhos.get(next));
+                                                Socket nclient = new Socket(vizinhos.get(next).getIp(), vizinhos.get(next).getPort());
                                                 ObjectOutputStream bufferStream = new ObjectOutputStream(nclient.getOutputStream());
                                                 bufferStream.flush();
                                                 //System.out.println( activeList +" "+Collections.max(activeList));
@@ -100,7 +100,7 @@ public class Process implements Runnable{
                                             } else {
                                                 active.add(getPid());
                                                 activeList= new ArrayList<>(active);
-                                                Socket nclient = new Socket("127.0.0.1", vizinhos.get(next));
+                                                Socket nclient = new Socket(vizinhos.get(next).getIp(), vizinhos.get(next).getPort());
                                                 ObjectOutputStream bufferStream = new ObjectOutputStream(nclient.getOutputStream());
                                                 bufferStream.flush();
                                                 Message nmsg = new Message(1, activeList);
@@ -121,7 +121,7 @@ public class Process implements Runnable{
                                         int next= 0;
                                         try {
                                             next = get_nextnode();
-                                            Socket nclient = new Socket("127.0.0.1", vizinhos.get(next));
+                                            Socket nclient = new Socket(vizinhos.get(next).getIp(), vizinhos.get(next).getPort());
                                             ObjectOutputStream bufferStream = new ObjectOutputStream(nclient.getOutputStream());
                                             bufferStream.flush();
                                             Message nmsg = new Message(2,getCoodenador());
@@ -154,7 +154,7 @@ public class Process implements Runnable{
         try {
             Socket client = new Socket();
             int time = 1000;
-            client.connect(new InetSocketAddress("127.0.0.1", vizinhos.get(p)), time);
+            client.connect(new InetSocketAddress(vizinhos.get(p).getIp(), vizinhos.get(p).getPort()), time);
             //System.out.println("\nConectado com sucesso com vizinho");
             ObjectOutputStream bufferStream = new ObjectOutputStream(client.getOutputStream());
             bufferStream.flush();
@@ -194,7 +194,7 @@ public class Process implements Runnable{
                         Socket client = new Socket();
                         int time = 1000;
                         if(vizinhos.get(getCoodenador())==null)throw new IOException();
-                        client.connect(new InetSocketAddress("127.0.0.1",vizinhos.get(getCoodenador())),time);
+                        client.connect(new InetSocketAddress(vizinhos.get(getCoodenador()).getIp(), vizinhos.get(getCoodenador()).getPort()),time);
                         System.out.println(getPid() + " Conectado com sucesso com coordenador " + getCoodenador());
                         ObjectOutputStream bufferStream = new ObjectOutputStream(client.getOutputStream());
                         bufferStream.flush();
@@ -203,12 +203,12 @@ public class Process implements Runnable{
                         Thread.sleep(10000);
 
                     } catch (IOException e) {
-                        System.out.println(getPid()+" não consegue conectar com "+ getCoodenador() );
+                        System.out.println(getPid()+" nao consegue conectar com "+ getCoodenador() );
                         try{
                             if(rc_flag==0) {
                                 rc_flag=1;
                                 int next_node = get_nextnode();
-                                Socket client = new Socket("127.0.0.1", vizinhos.get(next_node));
+                                Socket client = new Socket(vizinhos.get(next_node).getIp(), vizinhos.get(next_node).getPort());
                                 //System.out.println("Sending Update to " + id);
                                 ObjectOutputStream bufferStream = new ObjectOutputStream(client.getOutputStream());
                                 bufferStream.flush();
@@ -235,7 +235,7 @@ public class Process implements Runnable{
     public void run() {
         setCoodenador(1);//First process Coordenador
         rc_flag=0;
-        vizinhos = new HashMap<Integer,Integer>();
+        vizinhos = new HashMap<Integer,IP>();
         try {
             register();
             new Thread(this::updateListener).start();

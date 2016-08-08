@@ -3,12 +3,8 @@
  */
 public class App {//launcher dos processos.
     public static void main(String args[]){
-        int number_of_process;
-        number_of_process =5;
-        while(number_of_process-- > 0){
             Process p = new Process();
             Thread t = new Thread(p);
             t.run();
-        }
     }
 }
