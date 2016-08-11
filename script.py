@@ -58,7 +58,7 @@ def myNetwork():
     net.addLink(s1, h1, cls=TCLink , **s1h1)
     s1h2 = {'bw':2,'delay':'50ms','loss':5}
     net.addLink(s1, h2, cls=TCLink , **s1h2)
-    s2h3 = {'bw':2,'delay':'50','loss':5}
+    s2h3 = {'bw':2,'delay':'50ms','loss':5}
     net.addLink(s2, h3, cls=TCLink , **s2h3)
     s2h4 = {'bw':2,'delay':'50ms','loss':5}
     net.addLink(s2, h4, cls=TCLink , **s2h4)
